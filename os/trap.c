@@ -55,6 +55,11 @@ void usertrap()
 		switch (cause) {
 		case SupervisorTimer:
 			tracef("time interrupt!\n");
+			struct proc *p = curr_proc();
+            if (p != 0 && p->state == RUNNING) {
+                // Increment time - each tick is 10ms based on timer setup
+                p->time++;  //counts ticks, not ms
+            }
 			set_next_timer();
 			yield();
 			break;

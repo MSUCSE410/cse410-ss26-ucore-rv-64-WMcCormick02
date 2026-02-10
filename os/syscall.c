@@ -4,6 +4,9 @@
 #include "syscall_ids.h"
 #include "timer.h"
 #include "trap.h"
+#include "proc.h"
+#include "taskinfo.h"
+
 
 uint64 sys_write(int fd, char *str, uint len)
 {
@@ -39,6 +42,48 @@ uint64 sys_gettimeofday(TimeVal *val, int _tz)
 /*
 * LAB1: you may need to define sys_task_info here
 */
+/*
+ * LAB1: define sys_task_info here
+ */
+
+static TaskStatus map_status(enum procstate s)
+{
+    switch (s) {
+    case UNUSED:   return TASK_UNUSED;
+    case USED:     return TASK_READY;     // or whatever your enum uses
+    case RUNNABLE: return TASK_READY;
+    case RUNNING:  return TASK_RUNNING;
+    case SLEEPING: return TASK_SLEEPING;
+    case ZOMBIE:   return TASK_ZOMBIE;
+    default:       return TASK_UNUSED;
+    }
+}
+
+uint64 sys_task_info(struct TaskInfo *ti)
+{
+    if (ti == 0) return (uint64)-1;
+
+    struct proc *p = curr_proc();
+
+    ti->status = map_status(p->state);
+
+    for (int i = 0; i < MAX_SYSCALL_NUM; i++) {
+        ti->syscall_times[i] = p->syscall_times[i];
+    }
+
+    uint64 current_cycle = get_cycle();
+    uint64 elapsed_cycles = current_cycle - p->start_tick;
+    
+    // Avoid potential overflow by doing division first
+    ti->time = (elapsed_cycles / (CPU_FREQ / 1000));
+    
+    return 0;
+}
+
+uint64 sys_getpid(void)
+{
+    return (uint64)curr_proc()->pid;
+}
 
 extern char trap_page[];
 
@@ -53,6 +98,11 @@ void syscall()
 	/*
 	* LAB1: you may need to update syscall counter for task info here
 	*/
+	struct proc *p = curr_proc();
+    if (id >= 0 && id < MAX_SYSCALL_NUM) {
+        p->syscall_times[id]++;
+    }
+	
 	switch (id) {
 	case SYS_write:
 		ret = sys_write(args[0], (char *)args[1], args[2]);
@@ -69,6 +119,14 @@ void syscall()
 	/*
 	* LAB1: you may need to add SYS_taskinfo case here
 	*/
+	case SYS_taskinfo:
+    	ret = sys_task_info((struct TaskInfo *)args[0]);
+    	break;
+	case SYS_getpid:
+    	ret = sys_getpid();
+    	break;
+
+
 	default:
 		ret = -1;
 		errorf("unknown syscall %d", id);

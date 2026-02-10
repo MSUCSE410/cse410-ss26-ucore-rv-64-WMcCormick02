@@ -51,6 +51,11 @@ int run_all_app()
 		/*
 		* LAB1: you may need to initialize your new fields of proc here
 		*/
+		p->time = 0;
+        p->start_tick = 0;
+        for (int s = 0; s < MAX_SYSCALL_NUM; s++) {
+            p->syscall_times[s] = 0;
+        }
 	}
 	return 0;
 }
