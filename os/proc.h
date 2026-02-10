@@ -50,15 +50,6 @@ struct proc {
 	uint64 start_tick;
 };
 
-// /*
-// * LAB1: you may need to define struct for TaskInfo here
-// */
-// struct TaskInfo {
-// 	TaskStatus status;
-// 	unsigned int syscall_times[MAX_SYSCALL_NUM];
-// 	int time;
-// };
-
 struct proc *curr_proc();
 void exit(int);
 void proc_init();
