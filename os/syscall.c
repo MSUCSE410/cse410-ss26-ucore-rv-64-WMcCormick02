@@ -50,7 +50,7 @@ static TaskStatus map_status(enum procstate s)
 {
     switch (s) {
     case UNUSED:   return TASK_UNUSED;
-    case USED:     return TASK_READY;     // or whatever your enum uses
+    case USED:     return TASK_READY;
     case RUNNABLE: return TASK_READY;
     case RUNNING:  return TASK_RUNNING;
     case SLEEPING: return TASK_SLEEPING;
