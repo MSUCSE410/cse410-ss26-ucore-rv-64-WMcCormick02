@@ -40,9 +40,6 @@ uint64 sys_gettimeofday(TimeVal *val, int _tz)
 }
 
 /*
-* LAB1: you may need to define sys_task_info here
-*/
-/*
  * LAB1: define sys_task_info here
  */
 
@@ -73,9 +70,10 @@ uint64 sys_task_info(struct TaskInfo *ti)
 
     uint64 current_cycle = get_cycle();
     uint64 elapsed_cycles = current_cycle - p->start_tick;
-    
-    // Avoid potential overflow by doing division first
+        
     ti->time = (elapsed_cycles / (CPU_FREQ / 1000));
+    
+    debugf("ti->time=%d ms", ti->time);
     
     return 0;
 }
