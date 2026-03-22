@@ -1,5 +1,5 @@
 .PHONY: clean build user
-all: build_kernel
+all: build
 
 K = os
 

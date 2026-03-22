@@ -1,6 +1,7 @@
 #include "loader.h"
 #include "defs.h"
 #include "trap.h"
+#include "timer.h"
 
 static int app_num;
 static uint64 *app_info_ptr;
@@ -64,12 +65,10 @@ int run_all_app()
 {
 	for (int i = 0; i < app_num; ++i) {
 		struct proc *p = allocproc();
+		p->start_tick = get_cycle();
 		tracef("load app %d", i);
 		bin_loader(app_info_ptr[i], app_info_ptr[i + 1], p);
 		p->state = RUNNABLE;
-		/*
-		* LAB1: you may need to initialize your new fields of proc here
-		*/
 	}
 	return 0;
 }
