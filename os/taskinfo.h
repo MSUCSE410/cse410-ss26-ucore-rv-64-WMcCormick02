@@ -9,7 +9,6 @@ typedef enum {
     Exited = 3,
 } TaskStatus;
 
-
 typedef struct {
     TaskStatus status;
     unsigned int syscall_times[MAX_SYSCALL_NUM];
