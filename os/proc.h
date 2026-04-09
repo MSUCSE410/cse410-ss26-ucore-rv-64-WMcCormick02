@@ -6,6 +6,7 @@
 #include "queue.h"
 
 #define NPROC (512)
+#define BIG_STRIDE 0x7FFFFFFFULL
 #define FD_BUFFER_SIZE (16)
 
 struct file;
@@ -45,6 +46,9 @@ struct proc {
 	struct proc *parent; // Parent process
 	uint64 exit_code;
 	struct file *files[FD_BUFFER_SIZE];
+	uint64 stride;
+    uint64 priority;
+    uint64 pass;
 };
 
 int cpuid();
@@ -57,6 +61,7 @@ void yield();
 int fork();
 int exec(char *);
 int wait(int, int *);
+int spawn(char *);
 void add_task(struct proc *);
 struct proc *pop_task();
 struct proc *allocproc();

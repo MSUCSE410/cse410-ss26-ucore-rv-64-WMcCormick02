@@ -5,6 +5,8 @@
 #include "syscall_ids.h"
 #include "timer.h"
 #include "trap.h"
+#include "vm.h"
+#include "proc.h"
 
 uint64 sys_write(int fd, uint64 va, uint len)
 {
@@ -95,16 +97,86 @@ uint64 sys_wait(int pid, uint64 va)
 uint64 sys_spawn(uint64 va)
 {
 	// TODO: your job is to complete the sys call
-	return -1;
+	struct proc *p = curr_proc();
+    char name[200];
+    copyinstr(p->pagetable, name, va, 200);
+    debugf("sys_spawn %s\n", name);
+    return spawn(name);
 }
 
 uint64 sys_set_priority(long long prio){
     // TODO: your job is to complete the sys call
-    return -1;
+    if (prio < 2)
+        return -1;
+    struct proc *p = curr_proc();
+    p->priority = (uint64)prio;
+    p->pass = BIG_STRIDE / (uint64)prio;
+    return prio;
 }
 
 
 extern char trap_page[];
+
+uint64 sys_mmap(uint64 start, uint64 len, int port, int flag, int fd)
+{
+    if (len == 0)
+        return 0;
+    if (len > 1024 * 1024 * 1024ULL)
+        return (uint64)-1;
+    if (port & ~0x7)
+        return (uint64)-1;
+    if ((port & 0x7) == 0)
+        return (uint64)-1;
+    if (start % PAGE_SIZE != 0)
+        return (uint64)-1;
+
+    struct proc *p = curr_proc();
+    uint64 npages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    for (uint64 i = 0; i < npages; i++) {
+        uint64 va = start + i * PAGE_SIZE;
+        if (walkaddr(p->pagetable, va) != 0)
+            return (uint64)-1;
+    }
+
+    int perm = PTE_U;
+    if (port & 1) perm |= PTE_R;
+    if (port & 2) perm |= PTE_W;
+    if (port & 4) perm |= PTE_X;
+
+    for (uint64 i = 0; i < npages; i++) {
+        uint64 va = start + i * PAGE_SIZE;
+        void *mem = kalloc();
+        if (mem == 0)
+            return (uint64)-1;
+        memset(mem, 0, PAGE_SIZE);
+        if (mappages(p->pagetable, va, PAGE_SIZE, (uint64)mem, perm) != 0) {
+            kfree(mem);
+            return (uint64)-1;
+        }
+    }
+    return 0;
+}
+
+uint64 sys_munmap(uint64 start, uint64 len)
+{
+    if (len == 0)
+        return 0;
+    if (start % PAGE_SIZE != 0)
+        return (uint64)-1;
+
+    struct proc *p = curr_proc();
+    uint64 npages = (len + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    for (uint64 i = 0; i < npages; i++) {
+        uint64 va = start + i * PAGE_SIZE;
+        if (walkaddr(p->pagetable, va) == 0)
+            return (uint64)-1;
+    }
+
+    uvmunmap(p->pagetable, start, npages, 1);
+    return 0;
+}
 
 void syscall()
 {
@@ -148,6 +220,15 @@ void syscall()
 	case SYS_spawn:
 		ret = sys_spawn(args[0]);
 		break;
+    case SYS_mmap:
+        ret = sys_mmap(args[0], args[1], args[2], args[3], args[4]);
+        break;
+    case SYS_munmap:
+        ret = sys_munmap(args[0], args[1]);
+        break;
+    case SYS_setpriority:
+        ret = sys_set_priority((long long)args[0]);
+        break;
 	default:
 		ret = -1;
 		errorf("unknown syscall %d", id);
