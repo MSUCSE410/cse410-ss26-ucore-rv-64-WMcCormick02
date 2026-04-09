@@ -216,6 +216,7 @@ int spawn(char *name)
         np->state = RUNNABLE;
         add_task(np);
         return np->pid;
+		
 }
 
 int wait(int pid, int *code)
