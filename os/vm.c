@@ -203,6 +203,7 @@ void freewalk(pagetable_t pagetable)
 			//panic("freewalk: leaf");
 		}
 	}
+	
 	kfree((void *)pagetable);
 }
 
