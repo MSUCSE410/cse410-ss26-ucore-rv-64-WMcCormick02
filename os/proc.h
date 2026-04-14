@@ -5,6 +5,7 @@
 #include "types.h"
 
 #define NPROC (512)
+#define BIG_STRIDE 0x7FFFFFFFULL
 #define FD_BUFFER_SIZE (16)
 
 struct file;
@@ -45,6 +46,9 @@ struct proc {
 	uint64 exit_code;
 	struct file *files
 		[FD_BUFFER_SIZE]; //File descriptor table, using to record the files opened by the process
+	uint64 stride;
+    uint64 priority;
+    uint64 pass;
 };
 
 int cpuid();
@@ -57,6 +61,7 @@ void yield();
 int fork();
 int exec(char *, char **);
 int wait(int, int *);
+int spawn(char *);
 void add_task(struct proc *);
 struct proc *pop_task();
 struct proc *allocproc();
@@ -65,5 +70,6 @@ int init_stdio(struct proc *);
 int push_argv(struct proc *, char **);
 // swtch.S
 void swtch(struct context *, struct context *);
+
 
 #endif // PROC_H

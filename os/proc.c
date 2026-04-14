@@ -4,6 +4,7 @@
 #include "trap.h"
 #include "vm.h"
 #include "queue.h"
+#include "fs.h"
 
 struct proc pool[NPROC];
 __attribute__((aligned(16))) char kstack[NPROC][PAGE_SIZE];
@@ -89,6 +90,9 @@ found:
 	p->max_page = 0;
 	p->parent = NULL;
 	p->exit_code = 0;
+	p->stride = 0;
+    p->priority = 16;
+    p->pass = BIG_STRIDE / 16;
 	p->pagetable = uvmcreate((uint64)p->trapframe);
 	memset(&p->context, 0, sizeof(p->context));
 	memset((void *)p->kstack, 0, KSTACK_SIZE);
@@ -117,30 +121,25 @@ int init_stdio(struct proc *p)
 //    via swtch back to the scheduler.
 void scheduler()
 {
-	struct proc *p;
-	for (;;) {
-		/*int has_proc = 0;
-		for (p = pool; p < &pool[NPROC]; p++) {
-			if (p->state == RUNNABLE) {
-				has_proc = 1;
-				tracef("swtich to proc %d", p - pool);
-				p->state = RUNNING;
-				current_proc = p;
-				swtch(&idle.context, &p->context);
-			}
-		}
-		if(has_proc == 0) {
-			panic("all app are over!\n");
-		}*/
-		p = fetch_task();
-		if (p == NULL) {
-			panic("all app are over!\n");
-		}
-		tracef("swtich to proc %d", p - pool);
-		p->state = RUNNING;
-		current_proc = p;
-		swtch(&idle.context, &p->context);
-	}
+        struct proc *p;
+        for (;;) {
+                struct proc *chosen = NULL;
+                for (p = pool; p < &pool[NPROC]; p++) {
+                        if (p->state != RUNNABLE)
+                                continue;
+                        if (chosen == NULL || p->stride < chosen->stride)
+                                chosen = p;
+                }
+                if (chosen == NULL) {
+                        __asm__ volatile("wfi");
+                        continue;
+                }
+                chosen->stride += chosen->pass;
+                tracef("switch to proc %d", chosen - pool);
+                chosen->state = RUNNING;
+                current_proc = chosen;
+                swtch(&idle.context, &chosen->context);
+        }
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -162,7 +161,7 @@ void sched()
 void yield()
 {
 	current_proc->state = RUNNABLE;
-	add_task(current_proc);
+	//add_task(current_proc);
 	sched();
 }
 
@@ -271,6 +270,29 @@ int exec(char *path, char **argv)
 	return push_argv(p, argv);
 }
 
+int spawn(char *name)
+{
+        struct inode *ip = namei(name);
+        if (ip == 0)
+                return -1;
+        ivalid(ip);
+        struct proc *np = allocproc();
+        if (np == 0) {
+                iput(ip);
+                return -1;
+        }
+        np->parent = curr_proc();
+        if (bin_loader(ip, np) < 0) {
+                iput(ip);
+                freeproc(np);
+                return -1;
+        }
+        iput(ip);
+        np->state = RUNNABLE;
+        add_task(np);
+        return np->pid;
+}
+
 int wait(int pid, int *code)
 {
 	struct proc *np;
@@ -297,7 +319,7 @@ int wait(int pid, int *code)
 			return -1;
 		}
 		p->state = RUNNABLE;
-		add_task(p);
+		//add_task(p);
 		sched();
 	}
 }
