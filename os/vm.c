@@ -137,7 +137,6 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 		pa += PGSIZE;
 	}
 	return 0;
-	
 }
 
 // Remove npages of mappings starting from va. va must be
