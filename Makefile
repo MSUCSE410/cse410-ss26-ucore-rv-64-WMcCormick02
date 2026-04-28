@@ -85,7 +85,7 @@ INIT_PROC ?= usershell
 
 build: build/kernel
 
-build/kernel: $(OBJS) os/kernel.ld
+build/kernel: placeholders $(OBJS) os/kernel.ld
 	$(LD) $(LDFLAGS) -T os/kernel.ld -o $(BUILDDIR)/kernel $(OBJS)
 	$(OBJDUMP) -S $(BUILDDIR)/kernel > $(BUILDDIR)/kernel.asm
 	$(OBJDUMP) -t $(BUILDDIR)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILDDIR)/kernel.sym
@@ -135,3 +135,14 @@ user:
 
 test: user run
 
+
+placeholders:
+	@mkdir -p user/target/bin
+	@touch user/target/bin/ch3_taskinfo
+	@touch user/target/bin/ch4_mmap0 user/target/bin/ch4_mmap1 user/target/bin/ch4_mmap2 user/target/bin/ch4_mmap3
+	@touch user/target/bin/ch4_unmap0 user/target/bin/ch4_unmap1
+	@touch user/target/bin/ch5_exit0 user/target/bin/ch5_exit1 user/target/bin/ch5_mergetest
+	@touch user/target/bin/ch5_ppid user/target/bin/ch5_setprio user/target/bin/ch5_spawn0 user/target/bin/ch5_spawn1 user/target/bin/ch5_usertest
+	@touch user/target/bin/ch5t_stride0 user/target/bin/ch5t_stride1 user/target/bin/ch5t_stride2
+	@touch user/target/bin/ch5t_stride3 user/target/bin/ch5t_stride4 user/target/bin/ch5t_stride5
+	@touch user/target/bin/ch5t_usertest
